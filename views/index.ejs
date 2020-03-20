@@ -27,6 +27,7 @@
 
             socket.on('chat_message', function(msg) {
                 $('#messages').append($('<li>').html(msg));
+                $('#messages').scrollTop($('#messages')[0].scrollHeight);
             });
 
             socket.on('is_online', function(username) {

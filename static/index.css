@@ -13,6 +13,7 @@ form {
     padding: 3px;
     position: fixed;
     bottom: 0;
+    height: 8%;
     width: 100%;
     border-color: #000;
     border-top-style: solid;
@@ -37,9 +38,13 @@ form button {
 
 #messages {
     list-style-type: none;
+    position: absolute;
     margin: 0;
     padding: 0;
     width: 85%;
+    max-height: 92%;
+    overflow-y: auto;
+    overflow-x: wrap;
 }
 
 #messages li {
