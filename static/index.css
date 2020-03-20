@@ -51,6 +51,10 @@ form button {
     padding: 5px 10px;
 }
 
+#messages .alert{
+    background: red!important;
+}
+
 #messages li:nth-child(odd) {
     background: #eee;
 }

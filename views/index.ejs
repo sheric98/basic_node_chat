@@ -17,11 +17,36 @@
         </form>
         <script>
             var socket = io.connect('http://localhost:4321');
+            function validName(name) {
+                return name.length > 0 && name.length <= 8;
+            }
+
+            function createName() {
+                var name = prompt('What is your butt name?');
+                while (!validName(name)) {
+                    if (name.length == 0) {
+                        alert('Enter nonempty butt name');
+                    }
+                    if (name.length > 8) {
+                        alert('Butt name too big');
+                    }
+                    name = prompt('What is your butt name?');
+                }
+                if (validName(name)) {
+                    socket.emit('username', name);
+                }
+            }
+
+            window.onload = function() {
+                createName();
+            }
 
             $('form').submit(function(e) {
                 e.preventDefault();
-                socket.emit('chat_message', $('#txt').val());
-                $('#txt').val('');
+                if ($('#txt').val() !== '') {
+                    socket.emit('chat_message', $('#txt').val());
+                    $('#txt').val('');
+                }
                 return false;
             });
 
@@ -48,8 +73,11 @@
                 }
             });
 
-            var name = prompt('What is your butt name?');
-            socket.emit('username', name);
+            socket.on('no_name', function(alert) {
+                $('#messages').append($('<li class=alert>').html(alert));
+                createName();
+            });
+
         </script>
     </body>
 </html>
