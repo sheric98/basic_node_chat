@@ -1,0 +1,16 @@
+{
+  "name": "node_chat_server",
+  "version": "1.0.0",
+  "description": "basic chat server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Eric Shang",
+  "license": "ISC",
+  "dependencies": {
+    "ejs": "^3.0.1",
+    "express": "^4.17.1",
+    "socket.io": "^2.3.0"
+  }
+}

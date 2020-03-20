@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Super Sucky my Butt</title>
+        <link rel="stylesheet" type="text/css" href="index.css">
+        <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+        <script src="../../socket.io/socket.io.js"></script>
+    </head>
+    <body>
+        <ul id="messages"></ul>
+        <form action="/" method="POST" id="chatForm">
+            <input id="txt" autocomplete="off" autofocus="on" oninput="isTyping()" placeholder="don't be stupid...">
+            <button>Send</button>
+        </form>
+        <script>
+            var socket = io.connect('http://localhost:4321');
+
+            $('form').submit(function(e) {
+                e.preventDefault();
+                socket.emit('chat_message', $('#txt').val());
+                $('#txt').val('');
+                return false;
+            });
+
+            socket.on('chat_message', function(msg) {
+                $('#messages').append($('<li>').html(msg));
+            });
+
+            socket.on('is_online', function(username) {
+                $('#messages').append($('<li>').html(username));
+            });
+
+            var name = prompt('What is your butt name?');
+            socket.emit('username', name);
+        </script>
+    </body>
+</html>
+
