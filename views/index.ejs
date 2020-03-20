@@ -8,6 +8,9 @@
     </head>
     <body>
         <ul id="messages"></ul>
+        <ul id="users">
+            <div><b>Online Users</b></div>
+        </ul>
         <form action="/" method="POST" id="chatForm">
             <input id="txt" autocomplete="off" autofocus="on" oninput="isTyping()" placeholder="don't be stupid...">
             <button>Send</button>
@@ -28,6 +31,20 @@
 
             socket.on('is_online', function(username) {
                 $('#messages').append($('<li>').html(username));
+            });
+
+            socket.on('new_user', function(username, id) {
+                $('#users').append($('<li id=' + id + '>').html(username));
+            });
+
+            socket.on('remove_user', function(id) {
+                $('#' + id).remove();
+            });
+
+            socket.on('display', function(map) {
+                for (let key in map) {
+                    $('#users').append($('<li id=' + key + '>').html(map[key]));
+                }
             });
 
             var name = prompt('What is your butt name?');

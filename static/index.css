@@ -39,6 +39,7 @@ form button {
     list-style-type: none;
     margin: 0;
     padding: 0;
+    width: 85%;
 }
 
 #messages li {
@@ -47,4 +48,26 @@ form button {
 
 #messages li:nth-child(odd) {
     background: #eee;
+}
+
+#users {
+    list-style-type: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 15%;
+    height: 100%;
+    border-color: black;
+    border-left-style: solid;
+    border-left-width: 1px;
+}
+
+#users li {
+    padding: 3px 5px;
+}
+
+#users div {
+    padding-top: 5px;
+    padding-bottom: 5px;
+    text-align: center;
 }
