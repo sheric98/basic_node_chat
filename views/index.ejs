@@ -20,34 +20,45 @@
 
             var typing = false;
 
-            function validName(name) {
-                return name.length > 0 && name.length <= 8;
+            function validName(name, map) {
+                return name.length > 0 && name.length <= 8 && !(name in map) && !(name.includes(' '));
             }
 
-            function createName() {
+            function createName(map) {
                 var name = prompt('What is your butt name?');
-                while (!validName(name)) {
+                while (!validName(name, map)) {
                     if (name.length == 0) {
                         alert('Enter nonempty butt name');
                     }
-                    if (name.length > 8) {
+                    else if (name.includes(' ')) {
+                        alert("Name can't have spaces");
+                    }
+                    else if (name.length > 8) {
                         alert('Butt name too big');
+                    }
+                    else {
+                        alert(name + ' already chosen. Please choose a different name.');
                     }
                     name = prompt('What is your butt name?');
                 }
-                if (validName(name)) {
-                    socket.emit('username', name);
-                }
+                socket.emit('username', name);
             }
 
-            window.onload = function() {
-                createName();
-            }
+            socket.on('new_conn', function(map) {
+                $('#users').contents().filter(function() {
+                    return !$(this).is('div');
+                }).remove();
+                for (let key in map) {
+                    $('#users').append($('<li id=' + map[key] + '>').html(key));
+                }
+                createName(map);
+            });
 
             $('form').submit(function(e) {
                 e.preventDefault();
-                if ($('#txt').val() !== '') {
-                    socket.emit('chat_message', $('#txt').val());
+                var msg = $('#txt').val();
+                if (msg !== '') {
+                    socket.emit('chat_message', msg);
                     $('#txt').val('');
                     if (typing) {
                         typing = false;
@@ -74,15 +85,9 @@
                 $('#' + id).remove();
             });
 
-            socket.on('display', function(map) {
-                for (let key in map) {
-                    $('#users').append($('<li id=' + key + '>').html(map[key]));
-                }
-            });
-
-            socket.on('no_name', function(alert) {
+            socket.on('no_name', function(alert, map) {
                 $('#messages').append($('<li class=alert>').html(alert));
-                createName();
+                createName(map);
             });
 
             socket.on('add_typing', function(id) {
