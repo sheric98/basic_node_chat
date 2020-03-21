@@ -80,3 +80,7 @@ form button {
     padding-bottom: 5px;
     text-align: center;
 }
+
+#users .mod {
+    color: blue;
+}

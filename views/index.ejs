@@ -44,12 +44,17 @@
                 socket.emit('username', name);
             }
 
-            socket.on('new_conn', function(map) {
+            socket.on('new_conn', function(map, mods) {
                 $('#users').contents().filter(function() {
                     return !$(this).is('div');
                 }).remove();
                 for (let key in map) {
-                    $('#users').append($('<li id=' + map[key] + '>').html(key));
+                    if (key in mods) {
+                        $('#users').append($('<li id=' + map[key] + ' class="mod">').html(key));
+                    }
+                    else {
+                        $('#users').append($('<li id=' + map[key] + '>').html(key));
+                    }
                 }
                 createName(map);
             });
@@ -96,6 +101,10 @@
 
             socket.on('remove_typing', function(id) {
                 $('#' + id).find('i')[0].remove();
+            });
+
+            socket.on('new_mod', function(id) {
+                $('#' + id).addClass('mod');
             });
 
             function isTyping() {

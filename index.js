@@ -11,6 +11,9 @@ app.get('/', function(req, res) {
 
 var users = new Object();
 var names = new Object();
+var mods = new Object();
+
+var PASSWORD = 'HELLO THERE!'
 
 function isDM(msg) {
     if (msg[0] == '@') {
@@ -28,13 +31,72 @@ function isDM(msg) {
     return [false, null, null];
 }
 
+function isCmdUsr(msg, cmd, hasMsg) {
+    if (msg.length > cmd.length) {
+        if (msg.substring(0, cmd.length) === cmd) {
+            var rest = msg.substring(cmd.length, msg.length);
+            var target = null;
+            var msg = null;
+            if (!hasMsg) {
+                target = rest;
+            }
+            else if (rest.indexOf(' ') > 0) {
+                var space = rest.indexOf(' ');
+                if (rest.length > space + 1) {
+                    target = rest.substring(0, space);
+                    msg = rest.substring(space + 1, rest.length);
+                }
+            }
+            if (target != null) {
+                if (target in names) {
+                    return [true, target, msg];
+                }
+            }
+        }
+    }
+    return [false, null, null];
+}
+
 io.sockets.on('connection', function(socket) {
     function validSocket() {
         return (socket.hasOwnProperty('username') && (typeof socket.username !== "undefined")
             && socket.username != null);
     }
 
-    socket.emit('new_conn', names);
+    function sendMsg(msg) {
+        io.emit('chat_message', '<b>' + socket.username + '</b>: ' + msg);
+    }
+
+    function sendDM(target, dm) {
+        if (target === socket.username) {
+            return false;
+        }
+        var target_id = names[target];
+        users[target_id].emit('chat_message', '<b>' + socket.username + ' => you</b>: ' + dm);
+        socket.emit('chat_message', '<b>you => ' + target + '</b>: ' + dm);
+        return true;
+    }
+
+    function makeMod(target) {
+        var id = names[target];
+        mods[target] = id;
+        users[id].emit('chat_message', '<b><i>You are now a mod!</i></b>');
+        io.emit('new_mod', id);
+    }
+
+    function alreadyMod(target) {
+        socket.emit('chat_message', '<b><i>' + target + ' is already a mod.</i></b>');
+    }
+
+    function noPriv() {
+        socket.emit('chat_message', '<b><i>You do not have the privileges to do that!</i></b>');
+    }
+
+    function wrongPass() {
+        socket.emit('chat_message', '<b><i>Incorrect password!</i></b>');
+    }
+
+    socket.emit('new_conn', names, mods);
 
     socket.on('username', function(username) {
         if ((typeof username !== "undefined") && (username != null)) {
@@ -51,6 +113,7 @@ io.sockets.on('connection', function(socket) {
         if (validSocket()) {
             delete users[socket.id];
             delete names[socket.username];
+            delete mods[socket.username];
             console.log('deleted ' + socket.username);
             io.emit('is_online', '<i>' + socket.username + ' has a small butt...</i>');
             io.emit('remove_user', socket.id);
@@ -62,16 +125,43 @@ io.sockets.on('connection', function(socket) {
             socket.emit('no_name', '<b><i>Please refresh and enter a name to chat.</i></b>', names);
         }
         else{
-            var checkDM = isDM(message);
+            var checkDM = isCmdUsr(message, '@', true);
+            var checkModPass = isCmdUsr(message, '/MOD ', true);
+            var checkModMod = isCmdUsr(message, '/MOD ', false);
             if (checkDM[0]) {
                 var target = checkDM[1];
-                var DM = checkDM[2];
-                var target_id = names[target];
-                users[target_id].emit('chat_message', '<b>' + socket.username + ' => you</b>: ' + DM);
-                socket.emit('chat_message', '<b>you => ' + socket.username + '</b>: ' + DM);
+                var dm = checkDM[2];
+                if (!sendDM(target, dm)) {
+                    sendMsg(message);
+                }
+            }
+            else if (checkModPass[0]) {
+                var target = checkModPass[1];
+                var pass = checkModPass[2];
+                if (target in mods) {
+                    alreadyMod(target);
+                }
+                else if (pass === PASSWORD) {
+                    makeMod(target);
+                }
+                else {
+                    wrongPass();
+                }
+            }
+            else if (checkModMod[0]) {
+                var target = checkModMod[1];
+                if (target in mods) {
+                    alreadyMod(target);
+                }
+                else if (socket.username in mods) {
+                    makeMod(target);
+                }
+                else {
+                    noPriv();
+                }
             }
             else {
-                io.emit('chat_message', '<b>' + socket.username + '</b>: ' + message);
+                sendMsg(message);
             }
         }
     });
