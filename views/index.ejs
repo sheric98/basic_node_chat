@@ -17,6 +17,9 @@
         </form>
         <script>
             var socket = io.connect('http://localhost:4321');
+
+            var typing = false;
+
             function validName(name) {
                 return name.length > 0 && name.length <= 8;
             }
@@ -46,6 +49,10 @@
                 if ($('#txt').val() !== '') {
                     socket.emit('chat_message', $('#txt').val());
                     $('#txt').val('');
+                    if (typing) {
+                        typing = false;
+                        socket.emit('stop_typing');
+                    }
                 }
                 return false;
             });
@@ -77,6 +84,25 @@
                 $('#messages').append($('<li class=alert>').html(alert));
                 createName();
             });
+
+            socket.on('add_typing', function(id) {
+                $('#' + id).append($('<i>').html(' is typing...'));
+            });
+
+            socket.on('remove_typing', function(id) {
+                $('#' + id).find('i')[0].remove();
+            });
+
+            function isTyping() {
+                if (!typing && $('#txt').val() !== '') {
+                    typing = true;
+                    socket.emit('start_typing');
+                }
+                if (typing && $('#txt').val() === '') {
+                    typing = false;
+                    socket.emit('stop_typing');
+                }
+            }
 
         </script>
     </body>

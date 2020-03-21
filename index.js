@@ -42,6 +42,18 @@ io.sockets.on('connection', function(socket) {
             io.emit('chat_message', '<b>' + socket.username + '</b>: ' + message);
         }
     });
+
+    socket.on('start_typing', function() {
+        if (validSocket()) {
+            io.emit('add_typing', socket.id);
+        }
+    });
+
+    socket.on('stop_typing', function() {
+        if (validSocket()) {
+            io.emit('remove_typing', socket.id);
+        }
+    });
 });
 
 const server = http.listen(4321, function() {
