@@ -26,6 +26,9 @@
 
             function createName(map) {
                 var name = prompt('What is your butt name?');
+                if (name == null) {
+                    return;
+                }
                 while (!validName(name, map)) {
                     if (name.length == 0) {
                         alert('Enter nonempty butt name');
@@ -49,11 +52,13 @@
                     return !$(this).is('div');
                 }).remove();
                 for (let key in map) {
-                    if (key in mods) {
-                        $('#users').append($('<li id=' + map[key] + ' class="mod">').html(key));
+                    let id = map[key][0];
+                    $('#users').append($('<li id=' + id + '>').html(key));
+                    if (map[key][1]) {
+                        $('#' + id).addClass('mod');
                     }
-                    else {
-                        $('#users').append($('<li id=' + map[key] + '>').html(key));
+                    if (map[key][2]) {
+                        $('#' + id).addClass('mute');
                     }
                 }
                 createName(map);
@@ -78,6 +83,10 @@
                 $('#messages').scrollTop($('#messages')[0].scrollHeight);
             });
 
+            socket.on('alert', function(msg) {
+                $('#messages').append($('<li class="alert">').html(msg));
+            });
+
             socket.on('is_online', function(username) {
                 $('#messages').append($('<li>').html(username));
             });
@@ -91,7 +100,7 @@
             });
 
             socket.on('no_name', function(alert, map) {
-                $('#messages').append($('<li class=alert>').html(alert));
+                $('#messages').append($('<li class="alert">').html(alert));
                 createName(map);
             });
 
@@ -110,6 +119,14 @@
             socket.on('kick', function(kicker) {
                 alert('You have been kicked by ' + kicker);
                 window.location.href = "https://www.youtube.com/watch?v=PSKQ3ZNQ_O8";
+            });
+
+            socket.on('mute', function(id) {
+                $('#' + id).addClass('mute');
+            });
+
+            socket.on('unmute', function(id) {
+                $('#' + id).removeClass('mute');
             })
 
             function isTyping() {

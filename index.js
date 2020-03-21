@@ -11,25 +11,8 @@ app.get('/', function(req, res) {
 
 var users = new Object();
 var names = new Object();
-var mods = new Object();
 
 const PASSWORD = 'HELLO THERE!'
-
-function isDM(msg) {
-    if (msg[0] == '@') {
-        if (msg.indexOf(' ') > 1) {
-            var space = msg.indexOf(' ');
-            var target = msg.substring(1, space);
-            if (msg.length > space + 1) {
-                if (target in names) {
-                    var dm = msg.substring(space + 1, msg.length);
-                    return [true, target, dm];
-                }
-            }
-        }
-    }
-    return [false, null, null];
-}
 
 function isCmdUsr(msg, cmd, hasMsg) {
     if (msg.length > cmd.length) {
@@ -60,7 +43,23 @@ function isCmdUsr(msg, cmd, hasMsg) {
 io.sockets.on('connection', function(socket) {
     function validSocket() {
         return (socket.hasOwnProperty('username') && (typeof socket.username !== "undefined")
-            && socket.username != null);
+            && socket.username != null && (socket.username in names));
+    }
+
+    function addUser(name) {
+        socket.username = name;
+        users[socket.id] = socket;
+        names[name] = [socket.id, false, false];
+    }
+
+    function removeUser() {
+        delete users[socket.id];
+        delete names[socket.username];
+    }
+
+    function getSocket(name) {
+        var id = names[name][0];
+        return users[id];
     }
 
     function sendMsg(msg) {
@@ -71,8 +70,7 @@ io.sockets.on('connection', function(socket) {
         if (target === socket.username) {
             return false;
         }
-        var target_id = names[target];
-        users[target_id].emit('chat_message', '<b>' + socket.username + ' => you</b>: ' + dm);
+        getSocket(target).emit('chat_message', '<b>' + socket.username + ' => you</b>: ' + dm);
         socket.emit('chat_message', '<b>you => ' + target + '</b>: ' + dm);
         return true;
     }
@@ -81,15 +79,30 @@ io.sockets.on('connection', function(socket) {
         socket.emit('chat_message', '<b><i>' + msg + '</i></b>');
     }
 
+    function sendAllNotification(msg) {
+        io.emit('chat_message', '<b><i>' + msg + '</i></b>');
+    }
+
+    function sendAlert(msg) {
+        socket.emit('alert', '<b><i>' + msg + '</i></b>');
+    }
+
     function makeMod(target) {
-        var id = names[target];
-        mods[target] = id;
-        users[id].emit('chat_message', '<b><i>You are now a mod!</i></b>');
+        var id = names[target][0];
+        names[target][1] = true;
+        sendAllNotification(target + ' is now a mod!');
         io.emit('new_mod', id);
     }
 
     function alreadyMod(target) {
         sendNotification(target + ' is already a mod.');
+    }
+
+    function isMod() {
+        if (socket.username in names) {
+            return names[socket.username][1];
+        }
+        return false;
     }
 
     function noPriv() {
@@ -101,19 +114,41 @@ io.sockets.on('connection', function(socket) {
     }
 
     function sendKick(target) {
-        var id = names[target];
-        mods[target] = id;
-        users[id].emit('kick', socket.username);
-        sendNotification(target + ' has been kicked.');
+        getSocket(target).emit('kick', socket.username);
+        sendAllNotification(target + ' has been kicked by ' + socket.username);
     }
 
-    socket.emit('new_conn', names, mods);
+    function isMuted() {
+        return names[socket.username][2];
+    }
+
+    function alreadyMuted(target) {
+        sendNotification(target + ' is already muted.');
+    }
+
+    function alreadyUnmuted(target) {
+        sendNotification(target + ' is already unmuted.');
+    }
+
+    function sendMute(target) {
+        var id = names[target][0];
+        names[target][2] = true;
+        io.emit('mute', id);
+        sendAllNotification(target + ' has been muted by ' + socket.username);
+    }
+
+    function sendUnmute(target) {
+        var id = names[target][0];
+        names[target][2] = false;
+        io.emit('unmute', id);
+        sendAllNotification(target + ' has been unmuted by ' + socket.username);
+    }
+
+    socket.emit('new_conn', names);
 
     socket.on('username', function(username) {
         if ((typeof username !== "undefined") && (username != null)) {
-            socket.username = username;
-            users[socket.id] = socket;
-            names[socket.username] = socket.id;
+            addUser(username);
             console.log('created username ' + username);
             io.emit('is_online', '<i>' + socket.username + ' has a big butt...</i>');
             io.emit('new_user', socket.username, socket.id);
@@ -122,9 +157,7 @@ io.sockets.on('connection', function(socket) {
 
     socket.on('disconnect', function(disconnect) {
         if (validSocket()) {
-            delete users[socket.id];
-            delete names[socket.username];
-            delete mods[socket.username];
+            removeUser();
             console.log('deleted ' + socket.username);
             io.emit('is_online', '<i>' + socket.username + ' has a small butt...</i>');
             io.emit('remove_user', socket.id);
@@ -135,11 +168,16 @@ io.sockets.on('connection', function(socket) {
         if (!validSocket()) {
             socket.emit('no_name', '<b><i>Please refresh and enter a name to chat.</i></b>', names);
         }
+        else if (isMuted()) {
+            sendAlert('You are muted. No one can hear you.');
+        }
         else{
             var checkDM = isCmdUsr(message, '@', true);
             var checkModPass = isCmdUsr(message, '/MOD ', true);
             var checkModMod = isCmdUsr(message, '/MOD ', false);
             var checkKick = isCmdUsr(message, '/KICK ', false);
+            var checkMute = isCmdUsr(message, '/MUTE ', false);
+            var checkUnmute = isCmdUsr(message, '/UNMUTE ', false);
             if (checkDM[0]) {
                 var target = checkDM[1];
                 var dm = checkDM[2];
@@ -150,7 +188,7 @@ io.sockets.on('connection', function(socket) {
             else if (checkModPass[0]) {
                 var target = checkModPass[1];
                 var pass = checkModPass[2];
-                if (target in mods) {
+                if (names[target][1]) {
                     alreadyMod(target);
                 }
                 else if (pass === PASSWORD) {
@@ -162,10 +200,10 @@ io.sockets.on('connection', function(socket) {
             }
             else if (checkModMod[0]) {
                 var target = checkModMod[1];
-                if (target in mods) {
+                if (names[target][1]) {
                     alreadyMod(target);
                 }
-                else if (socket.username in mods) {
+                else if (isMod()) {
                     makeMod(target);
                 }
                 else {
@@ -174,8 +212,32 @@ io.sockets.on('connection', function(socket) {
             }
             else if (checkKick[0]) {
                 var target = checkKick[1];
-                if (socket.username in mods) {
+                if (isMod()) {
                     sendKick(target);
+                }
+                else {
+                    noPriv();
+                }
+            }
+            else if (checkMute[0]) {
+                var target = checkMute[1];
+                if (names[target][2]) {
+                    alreadyMuted(target);
+                }
+                else if (isMod()) {
+                    sendMute(target);
+                }
+                else {
+                    noPriv();
+                }
+            }
+            else if (checkUnmute[0]) {
+                var target = checkUnmute[1];
+                if (!names[target][2]) {
+                    alreadyUnmuted(target);
+                }
+                else if (isMod()) {
+                    sendUnmute(target);
                 }
                 else {
                     noPriv();

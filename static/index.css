@@ -51,7 +51,7 @@ form button {
     padding: 5px 10px;
 }
 
-#messages .alert{
+#messages .alert {
     background: red!important;
 }
 
@@ -72,7 +72,7 @@ form button {
 }
 
 #users li {
-    padding: 3px 5px;
+    padding: 5px 12px;
 }
 
 #users div {
@@ -83,4 +83,10 @@ form button {
 
 #users .mod {
     color: blue;
+}
+
+#users .mute {
+    background-image: url('mute.png');
+    background-repeat: no-repeat;
+    background-position: left center;
 }
