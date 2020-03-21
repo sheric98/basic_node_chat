@@ -13,7 +13,7 @@ var users = new Object();
 var names = new Object();
 var mods = new Object();
 
-var PASSWORD = 'HELLO THERE!'
+const PASSWORD = 'HELLO THERE!'
 
 function isDM(msg) {
     if (msg[0] == '@') {
@@ -77,6 +77,10 @@ io.sockets.on('connection', function(socket) {
         return true;
     }
 
+    function sendNotification(msg) {
+        socket.emit('chat_message', '<b><i>' + msg + '</i></b>');
+    }
+
     function makeMod(target) {
         var id = names[target];
         mods[target] = id;
@@ -85,15 +89,22 @@ io.sockets.on('connection', function(socket) {
     }
 
     function alreadyMod(target) {
-        socket.emit('chat_message', '<b><i>' + target + ' is already a mod.</i></b>');
+        sendNotification(target + ' is already a mod.');
     }
 
     function noPriv() {
-        socket.emit('chat_message', '<b><i>You do not have the privileges to do that!</i></b>');
+        sendNotification('You do not have the privileges to do that!');
     }
 
     function wrongPass() {
-        socket.emit('chat_message', '<b><i>Incorrect password!</i></b>');
+        sendNotification('Incorrect password!');
+    }
+
+    function sendKick(target) {
+        var id = names[target];
+        mods[target] = id;
+        users[id].emit('kick', socket.username);
+        sendNotification(target + ' has been kicked.');
     }
 
     socket.emit('new_conn', names, mods);
@@ -128,6 +139,7 @@ io.sockets.on('connection', function(socket) {
             var checkDM = isCmdUsr(message, '@', true);
             var checkModPass = isCmdUsr(message, '/MOD ', true);
             var checkModMod = isCmdUsr(message, '/MOD ', false);
+            var checkKick = isCmdUsr(message, '/KICK ', false);
             if (checkDM[0]) {
                 var target = checkDM[1];
                 var dm = checkDM[2];
@@ -155,6 +167,15 @@ io.sockets.on('connection', function(socket) {
                 }
                 else if (socket.username in mods) {
                     makeMod(target);
+                }
+                else {
+                    noPriv();
+                }
+            }
+            else if (checkKick[0]) {
+                var target = checkKick[1];
+                if (socket.username in mods) {
+                    sendKick(target);
                 }
                 else {
                     noPriv();

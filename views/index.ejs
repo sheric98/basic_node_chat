@@ -107,6 +107,11 @@
                 $('#' + id).addClass('mod');
             });
 
+            socket.on('kick', function(kicker) {
+                alert('You have been kicked by ' + kicker);
+                window.location.href = "https://www.youtube.com/watch?v=PSKQ3ZNQ_O8";
+            })
+
             function isTyping() {
                 if (!typing && $('#txt').val() !== '') {
                     typing = true;
